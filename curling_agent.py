@@ -99,9 +99,9 @@ class CurlingChatbot:
                 name="WebSearch",
                 func=self._search_web,
                 description=(
-                    "Useful for searching the internet for current information about curling, "
-                    "Olympic curling rules, curling techniques, famous curlers, curling history, "
-                    "and any other curling-related topics. Input should be a search query string."
+                    "Search the internet for current information about curling. "
+                    "Use this ONLY for recent events, competitions, or facts you don't know. "
+                    "Input should be a clear search query."
                 )
             )
         ]
@@ -111,28 +111,37 @@ class CurlingChatbot:
         
         # Create prompt template - tools and tool_names will be injected by create_react_agent
         template = """You are a knowledgeable assistant specializing in Olympic curling.
-Your goal is to provide accurate, helpful, and engaging answers about curling.
+
+IMPORTANT: You should answer most questions directly from your knowledge. Only use WebSearch for:
+- Recent competitions or events (2022 onwards)
+- Current champions or winners
+- Specific facts you're uncertain about
 
 You have access to the following tools:
 {tools}
 
-Use the following format:
+Use this EXACT format (no deviations):
 
 Question: the input question you must answer
-Thought: you should always think about what to do
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
+Thought: Do I need to search for this, or can I answer from my knowledge?
+Action: WebSearch (ONLY if you need current/specific information)
+Action Input: the search query
 Observation: the result of the action
-... (this Thought/Action/Action Input/Observation can repeat N times)
-Thought: I now know the final answer
-Final Answer: the final answer to the original input question
+Thought: I now have enough information to answer
+Final Answer: [Your complete answer here, citing sources if you used WebSearch]
 
-Guidelines:
-1. For questions about current events, recent competitions, or specific facts, use WebSearch
-2. For general curling knowledge, you can answer directly if you're confident
-3. Always cite sources when using web search results
-4. Be conversational and enthusiastic about curling
-5. If you don't know something, admit it and search for the answer
+OR if you can answer directly:
+
+Question: the input question you must answer
+Thought: I can answer this from my knowledge of curling
+Final Answer: [Your complete answer here]
+
+CRITICAL RULES:
+1. If you can answer from knowledge, go DIRECTLY to Final Answer
+2. Use WebSearch ONLY for recent events or uncertain facts
+3. After ONE search, provide your Final Answer - do not search again
+4. Keep your Thought process brief and decisive
+5. Always provide a complete Final Answer
 
 Previous conversation:
 {chat_history}
@@ -149,14 +158,16 @@ Question: {input}
             prompt=prompt
         )
         
-        # Create agent executor
+        # Create agent executor with better configuration
         self.agent_executor = AgentExecutor(
             agent=agent,
             tools=tools,
             memory=self.memory,
             verbose=True,
             handle_parsing_errors=True,
-            max_iterations=5
+            max_iterations=3,  # Reduced to prevent loops
+            early_stopping_method="generate",  # Stop early if possible
+            return_intermediate_steps=False  # Cleaner output
         )
         
         print("✓ Agent initialized with web search capabilities")
