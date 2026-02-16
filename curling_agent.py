@@ -106,8 +106,14 @@ class CurlingChatbot:
             )
         ]
         
-        # Create prompt template
-        template = """You are a knowledgeable assistant specializing in Olympic curling. 
+        # Store tools for later use
+        self.tools = tools
+        
+        # Create prompt template with tools information
+        tools_description = "\n".join([f"{tool.name}: {tool.description}" for tool in tools])
+        tool_names = ", ".join([tool.name for tool in tools])
+        
+        template = """You are a knowledgeable assistant specializing in Olympic curling.
 Your goal is to provide accurate, helpful, and engaging answers about curling.
 
 You have access to the following tools:
@@ -141,8 +147,8 @@ Question: {input}
             template=template,
             input_variables=["input", "chat_history", "agent_scratchpad"],
             partial_variables={
-                "tools": "\n".join([f"{tool.name}: {tool.description}" for tool in tools]),
-                "tool_names": ", ".join([tool.name for tool in tools])
+                "tools": tools_description,
+                "tool_names": tool_names
             }
         )
         
