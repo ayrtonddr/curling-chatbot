@@ -109,10 +109,7 @@ class CurlingChatbot:
         # Store tools for later use
         self.tools = tools
         
-        # Create prompt template with tools information
-        tools_description = "\n".join([f"{tool.name}: {tool.description}" for tool in tools])
-        tool_names = ", ".join([tool.name for tool in tools])
-        
+        # Create prompt template - tools and tool_names will be injected by create_react_agent
         template = """You are a knowledgeable assistant specializing in Olympic curling.
 Your goal is to provide accurate, helpful, and engaging answers about curling.
 
@@ -143,14 +140,7 @@ Previous conversation:
 Question: {input}
 {agent_scratchpad}"""
 
-        prompt = PromptTemplate(
-            template=template,
-            input_variables=["input", "chat_history", "agent_scratchpad"],
-            partial_variables={
-                "tools": tools_description,
-                "tool_names": tool_names
-            }
-        )
+        prompt = PromptTemplate.from_template(template)
         
         # Create agent
         agent = create_react_agent(
