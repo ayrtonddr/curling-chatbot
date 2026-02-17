@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain.tools import Tool
 from langchain_community.llms import Ollama
-from langchain.prompts import PromptTemplate
+from langchain import hub
 from langchain.memory import ConversationBufferMemory
 from duckduckgo_search import DDGS
 
@@ -109,47 +109,34 @@ class CurlingChatbot:
         # Store tools for later use
         self.tools = tools
         
-        # Create prompt template - tools and tool_names will be injected by create_react_agent
-        template = """You are a knowledgeable assistant specializing in Olympic curling.
+        # Use the standard ReAct prompt from LangChain hub with custom instructions
+        try:
+            prompt = hub.pull("hwchase17/react")
+        except:
+            # Fallback: create a basic ReAct prompt if hub is unavailable
+            from langchain.prompts import PromptTemplate
+            
+            template = """Answer the following questions as best you can. You have access to the following tools:
 
-IMPORTANT: You should answer most questions directly from your knowledge. Only use WebSearch for:
-- Recent competitions or events (2022 onwards)
-- Current champions or winners
-- Specific facts you're uncertain about
-
-You have access to the following tools:
 {tools}
 
-Use this EXACT format (no deviations):
+Use the following format:
 
 Question: the input question you must answer
-Thought: Do I need to search for this, or can I answer from my knowledge?
-Action: WebSearch (ONLY if you need current/specific information)
-Action Input: the search query
+Thought: you should always think about what to do
+Action: the action to take, should be one of [{tool_names}]
+Action Input: the input to the action
 Observation: the result of the action
-Thought: I now have enough information to answer
-Final Answer: [Your complete answer here, citing sources if you used WebSearch]
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
 
-OR if you can answer directly:
-
-Question: the input question you must answer
-Thought: I can answer this from my knowledge of curling
-Final Answer: [Your complete answer here]
-
-CRITICAL RULES:
-1. If you can answer from knowledge, go DIRECTLY to Final Answer
-2. Use WebSearch ONLY for recent events or uncertain facts
-3. After ONE search, provide your Final Answer - do not search again
-4. Keep your Thought process brief and decisive
-5. Always provide a complete Final Answer
-
-Previous conversation:
-{chat_history}
+Begin!
 
 Question: {input}
-{agent_scratchpad}"""
-
-        prompt = PromptTemplate.from_template(template)
+Thought:{agent_scratchpad}"""
+            
+            prompt = PromptTemplate.from_template(template)
         
         # Create agent
         agent = create_react_agent(
